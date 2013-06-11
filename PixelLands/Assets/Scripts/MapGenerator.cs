@@ -2,10 +2,11 @@ using UnityEngine;
 using System.Collections;
 
 public class MapGenerator : MonoBehaviour {
-	public int width, height, seed, spawnChance, maxMiners;
-	private int totalMiners = 0, activeMiners = 0;
+	public int width, height, seed, spawnChance, targetBlocksMined, minimumMiners;
+	private int totalMined = 0, activeMiners = 0;
 	private ArrayList miners;
 	private int[,] map;
+	private Rect mapRect;
 	
 	Texture2D texture;
 	
@@ -19,79 +20,79 @@ public class MapGenerator : MonoBehaviour {
 		
 		miners.Add(new IntVector2(width/2, height/2));
 		map[width/2, height/2] = 1;
-		totalMiners = 1;
+		totalMined = 1;
 		activeMiners = 1;
 		
-		//generate();
+		mapRect.x = width;
+		mapRect.width = 0;
+		mapRect.y = height;
+		mapRect.height = 0;
+		
+		//while(totalMined < targetBlocksMined)
+			//generate();
 	}
 	
 	// Update is called once per frame
 	void Update () {
-		if(totalMiners < maxMiners){
-			for(int i = miners.Count-1; i >= 0; i--){
-				IntVector2 m = (IntVector2)miners[i];
-				IntVector2 mMoved = getNewPosition(m);
-				
-				miners[i] = mMoved;
-				markPosition(mMoved);
-				
-				if(m == mMoved){
-					if(miners.Count == 1)
-						miners[i] = randomDirection(m);
-					else
-						miners.RemoveAt(i);
-					continue;
-				}
-				else if(Random.Range(0, 100) < spawnChance){
-					IntVector2 newMiner = getNewPosition((IntVector2)miners[i]);
-					markPosition(newMiner);
-					miners.Add(newMiner);
-					totalMiners++;
-				}
-			}
-			
-			if(totalMiners == maxMiners){
-				Debug.Log("DONE");
-			}
-		}
+		generate(false);
+		if(Input.GetMouseButtonDown(1))
+			Debug.Log(totalMined + ", " + targetBlocksMined + ", " + miners.Count);
 	}
 	
-	void generate()
-	{
-		while(totalMiners < maxMiners){
-			for(int i = miners.Count-1; i >= 0; i--){
-				IntVector2 m = (IntVector2)miners[i];
-				IntVector2 mMoved = getNewPosition(m);
-				
-				miners[i] = mMoved;
-				markPosition(mMoved);
-				
-				if(m == mMoved){
-					if(miners.Count == 1)
-						miners[i] = randomDirection(m);
-					else
-						miners.RemoveAt(i);
-					continue;
+	void generate(bool oneShot){
+		do{
+			if(totalMined < targetBlocksMined){
+				for(int i = miners.Count-1; i >= 0; i--){
+					IntVector2 m = (IntVector2)miners[i];
+					IntVector2 mMoved = getNewPosition(m);
+					
+					miners[i] = mMoved;
+					markPosition(mMoved);
+					
+					if(m == mMoved){
+						if(miners.Count <= minimumMiners){
+							while(m == getNewPosition(m)){
+								m = randomDirection(m);
+							}
+							miners[i] = getNewPosition(m);
+							markPosition((IntVector2)miners[i]);
+						}
+						else
+							miners.RemoveAt(i);
+						continue;
+					}
+					else if(Random.Range(0, 100) < spawnChance){
+						IntVector2 newMiner = getNewPosition((IntVector2)miners[i]);
+						markPosition(newMiner);
+						miners.Add(newMiner);
+					}
 				}
-				else if(Random.Range(0, 100) < spawnChance){
-					IntVector2 newMiner = getNewPosition((IntVector2)miners[i]);
-					markPosition(newMiner);
-					miners.Add(newMiner);
-					totalMiners++;
+				
+				if(totalMined >= targetBlocksMined){
+					Debug.Log("DONE");
+					Debug.Log(mapRect);
 				}
 			}
-			
-			if(totalMiners == maxMiners){
-				Debug.Log("DONE");
-			}
-		}
+		}while(oneShot && totalMined < targetBlocksMined);
 	}
 	
-	void markPosition(IntVector2 m)
-	{
+	void fill(){
+		
+	}
+	
+	void markPosition(IntVector2 m){
+		mapRect.x = (mapRect.x > m.x)? m.x : mapRect.x;
+		mapRect.y = (mapRect.y > m.y)? m.y : mapRect.y;
+		
+		mapRect.xMax = (mapRect.xMax < m.x)? m.x : mapRect.xMax;
+		mapRect.yMax = (mapRect.yMax < m.y)? m.y : mapRect.yMax;
+		
+		totalMined++;
 		map[m.x, m.y] = 1;
-		texture.SetPixel(m.x, m.y, Color.red);
-		texture.Apply();
+		if(texture){
+			texture.SetPixel(m.x, m.y, Color.red);
+			texture.Apply();
+		}
 	}
 	
 	IntVector2 getNewPosition(IntVector2 pos){
@@ -130,8 +131,7 @@ public class MapGenerator : MonoBehaviour {
 		return newPos;
 	}
 	
-	IntVector2 randomDirection(IntVector2 pos)
-	{
+	IntVector2 randomDirection(IntVector2 pos){
 		int dir = Random.Range(0, 4);
 		IntVector2 newPos = pos;
 		
@@ -152,14 +152,12 @@ public class MapGenerator : MonoBehaviour {
 		return newPos;
 	}
 	
-	bool validPosition(IntVector2 p)
-	{
+	bool validPosition(IntVector2 p){
 		bool v = p.x >= 0 && p.y >= 0 && p.x < width && p.y < height;
 		return v;
 	}
 	
-	public struct IntVector2
-	{
+	public struct IntVector2{
 	    public int x, y;
 		
 		public IntVector2(int x, int y){this.x = x; this.y = y;}
