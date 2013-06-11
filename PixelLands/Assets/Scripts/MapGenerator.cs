@@ -3,17 +3,20 @@ using System.Collections;
 
 public class MapGenerator : MonoBehaviour {
 	public int width, height, seed, spawnChance, targetBlocksMined, minimumMiners;
+	public bool renderTexture = false;
 	private int totalMined = 0, activeMiners = 0;
 	private ArrayList miners;
-	private int[,] map;
-	private Rect mapRect;
+	public int[,] map;
+	public Rect mapRect;
 	
 	Texture2D texture;
 	
 	// Use this for initialization
-	void Start () {
-		texture = new Texture2D(width, height);
-		renderer.material.SetTexture("_MainTex", texture);
+	public void Start () {
+		if(renderTexture){
+			texture = new Texture2D(width, height);
+			renderer.material.SetTexture("_MainTex", texture);
+		}
 		
 		map = new int[width, height];
 		miners = new ArrayList();
@@ -39,7 +42,7 @@ public class MapGenerator : MonoBehaviour {
 			Debug.Log(totalMined + ", " + targetBlocksMined + ", " + miners.Count);
 	}
 	
-	void generate(bool oneShot){
+	public void generate(bool oneShot){
 		do{
 			if(totalMined < targetBlocksMined){
 				for(int i = miners.Count-1; i >= 0; i--){
